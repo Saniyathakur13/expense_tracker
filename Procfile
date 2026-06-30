@@ -1,1 +1,1 @@
-web: gunicorn expense_tracker_project.wsgi:application
+web: gunicorn expense_tracker_project.wsgi:application --timeout 90
