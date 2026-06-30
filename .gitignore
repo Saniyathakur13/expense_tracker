@@ -1,0 +1,41 @@
+# Python
+venv/
+env/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.log
+*.pid
+
+# Django
+*.db
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+uploads/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment
+*.pem
+*.key
+*.crt
+
+# Secrets
+secret_key.txt
+*.secret

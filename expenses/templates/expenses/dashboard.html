@@ -1,0 +1,299 @@
+{% extends 'expenses/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="mb-4">📊 Dashboard</h2>
+        
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+               <div class="card text-white" style="background-color: #ba74bc !important;">
+
+                    <div class="card-body">
+                        <h5 class="card-title">Total Expenses</h5>
+                        <h2>₹{{ total_amount|floatformat:2 }}</h2>
+                        <p class="mb-0">{{ total_expenses }} transactions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">This Month</h5>
+                        <h2>₹{{ current_month_total|floatformat:2 }}</h2>
+                        <p class="mb-0">{{ today|date:"F Y" }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white" style="background-color: #ff87c7 !important;">
+                    <div class="card-body">
+                        <h5 class="card-title">Today</h5>
+                        <h2>₹{{ today_total|floatformat:2 }}</h2>
+                        <p class="mb-0">{{ today|date:"d M Y" }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white" style="background-color: #c689f2 !important;">
+                    <div class="card-body">
+                        <h5 class="card-title">Average Per Day</h5>
+                        <h2>₹{{ total_amount|floatformat:2 }}</h2>
+                        <p class="mb-0">Last 30 days</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">💰 Monthly Budget</h5>
+                        <a href="{% url 'set_budget' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i> Set Budget
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if monthly_budget > 0 %}
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6>Budget: <strong>₹{{ monthly_budget|floatformat:2 }}</strong></h6>
+                                    <h6>Spent: <strong>₹{{ current_month_total|floatformat:2 }}</strong></h6>
+                                    <h6>Remaining: 
+                                        <strong class="{% if budget_remaining < 0 %}text-danger{% else %}text-success{% endif %}">
+                                            ₹{{ budget_remaining|floatformat:2 }}
+                                        </strong>
+                                    </h6>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span>{{ budget_percentage }}% used</span>
+                                            <span>{% if is_over_budget %}🔴 Over Budget{% else %}✅ On Track{% endif %}</span>
+                                        </div>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar {% if is_over_budget %}bg-danger{% elif budget_percentage > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ budget_percentage }}%;" 
+                                                 aria-valuenow="{{ budget_percentage }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ budget_percentage }}%
+                                            </div>
+                                        </div>
+                                        {% if is_over_budget %}
+                                            <div class="alert alert-danger mt-2">
+                                                ⚠️ You have exceeded your monthly budget!
+                                            </div>
+                                        {% elif budget_percentage > 80 %}
+                                            <div class="alert alert-warning mt-2">
+                                                ⚠️ You are close to your monthly budget limit!
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No budget set. <a href="{% url 'set_budget' %}">Set a monthly budget</a> to track your spending!</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📈 Monthly Spending Trend</h5>
+                    </div>
+                    <div class="card-body" style="height: 350px;">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📊 Category Distribution</h5>
+                    </div>
+                    <div class="card-body" style="height: 350px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Expenses -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">🕐 Recent Expenses</h5>
+                        <a href="{% url 'expense_list' %}" class="btn btn-sm btn-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Amount</th>
+                                        <th>Category</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in expenses|slice:":5" %}
+                                    <tr>
+                                        <td>{{ expense.title }}</td>
+                                        <td>₹{{ expense.amount|floatformat:2 }}</td>
+                                        <td>
+                                            {% if expense.category %}
+                                                <span class="badge" style="background-color: {{ expense.category.color }}; color: white;">
+                                                    {{ expense.category.name }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Uncategorized</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ expense.date }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No expenses yet. Start adding!</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get data from Django - use default values if empty
+    var monthlyLabels = {{ monthly_labels|safe }};
+    var monthlyData = {{ monthly_data|safe }};
+    var categories = {{ categories|safe }};
+    var categoryTotals = {{ category_totals|safe }};
+    var categoryColors = {{ category_colors|safe }};
+    
+    // Log data to console for debugging
+    console.log('Monthly Labels:', monthlyLabels);
+    console.log('Monthly Data:', monthlyData);
+    console.log('Categories:', categories);
+    console.log('Category Totals:', categoryTotals);
+    console.log('Category Colors:', categoryColors);
+    
+    // Check if monthly data exists, if not use sample
+    if (!monthlyLabels || monthlyLabels.length === 0) {
+        monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        monthlyData = [0, 0, 0, 0, 0, 0];
+        console.log('Using default monthly data');
+    }
+    
+    // Check if category data exists
+    if (!categories || categories.length === 0) {
+        categories = ['No Data'];
+        categoryTotals = [1];
+        categoryColors = ['#6c757d'];
+        console.log('Using default category data');
+    }
+    
+    // Get the canvas elements
+    var monthlyCanvas = document.getElementById('monthlyChart');
+    var categoryCanvas = document.getElementById('categoryChart');
+    
+    if (!monthlyCanvas) {
+        console.error('Monthly chart canvas not found!');
+    }
+    if (!categoryCanvas) {
+        console.error('Category chart canvas not found!');
+    }
+    
+    // Monthly Chart
+    if (monthlyCanvas) {
+        var ctx1 = monthlyCanvas.getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                    label: 'Monthly Spending (₹)',
+                    data: monthlyData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('✅ Monthly chart created');
+    }
+    
+    // Category Chart
+    if (categoryCanvas) {
+        var ctx2 = categoryCanvas.getContext('2d');
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: categories,
+                datasets: [{
+                    data: categoryTotals,
+                    backgroundColor: categoryColors,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        console.log('✅ Category chart created');
+    }
+});
+</script>
+{% endblock %}

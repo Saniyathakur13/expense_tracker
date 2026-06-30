@@ -1,0 +1,267 @@
+{% extends 'expenses/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a href="{% url 'yearly_dashboard' %}?year={{ year }}" class="btn btn-secondary me-2">
+                    <i class="bi bi-calendar-year"></i> Yearly
+                </a>
+                <h2 class="d-inline">📅 {{ month_name }} {{ year }}</h2>
+            </div>
+            <div class="d-flex align-items-center">
+                <!-- Export Buttons -->
+                <div class="btn-group me-2">
+                    <a href="{% url 'export_csv' %}?year={{ year }}&month={{ month }}" class="btn btn-success btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                    </a>
+                    <a href="{% url 'export_pdf' %}?year={{ year }}&month={{ month }}" class="btn btn-danger btn-sm">
+                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                    </a>
+                </div>
+                <!-- Previous Month -->
+                {% if month == 1 %}
+                    <a href="{% url 'monthly_dashboard' year|add:'-1' 12 %}" class="btn btn-outline-primary me-2" style="border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-chevron-left" style="font-size: 20px;"></i>
+                    </a>
+                {% else %}
+                    <a href="{% url 'monthly_dashboard' year month|add:'-1' %}" class="btn btn-outline-primary me-2" style="border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-chevron-left" style="font-size: 20px;"></i>
+                    </a>
+                {% endif %}
+                
+                <span class="mx-2 fw-bold">{{ month_name }} {{ year }}</span>
+                
+                <!-- Next Month -->
+                {% if month == 12 %}
+                    <a href="{% url 'monthly_dashboard' year|add:'1' 1 %}" class="btn btn-outline-primary ms-2" style="border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-chevron-right" style="font-size: 20px;"></i>
+                    </a>
+                {% else %}
+                    <a href="{% url 'monthly_dashboard' year month|add:'1' %}" class="btn btn-outline-primary ms-2" style="border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-chevron-right" style="font-size: 20px;"></i>
+                    </a>
+                {% endif %}
+                
+                <a href="{% url 'dashboard' %}" class="btn btn-primary ms-3">
+                    <i class="bi bi-speedometer2"></i> Current
+                </a>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-white" style="background-color: #ba74bc !important;">
+                    <div class="card-body">
+                        <h5 class="card-title">Monthly Spending</h5>
+                        <h2>₹{{ total_amount|floatformat:2 }}</h2>
+                        <p class="mb-0">{{ total_expenses }} transactions</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Average Per Day</h5>
+                        <h2>₹{{ total_amount|floatformat:2 }}</h2>
+                        <p class="mb-0">Over {{ total_expenses }} days</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Categories Used</h5>
+                        <h2>{{ categories|length }}</h2>
+                        <p class="mb-0">Different categories</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Table -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📝 Expenses for {{ month_name }} {{ year }}</h5>
+                <a href="{% url 'add_expense' %}?next={{ request.path }}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Add Expense
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr>
+                                <td>{{ expense.title }}</td>
+                                <td>{{ expense.description|default:"-" }}</td>
+                                <td>₹{{ expense.amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if expense.category %}
+                                        <span class="badge" style="background-color: {{ expense.category.color }}; color: white;">
+                                            {{ expense.category.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Uncategorized</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ expense.date }}</td>
+                                <td>
+                                    <a href="{% url 'edit_expense' expense.pk %}?next={{ request.path }}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'delete_expense' expense.pk %}?next={{ request.path }}" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    No expenses for {{ month_name }} {{ year }}.
+                                    <a href="{% url 'add_expense' %}?next={{ request.path }}">Add your first expense!</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary">
+                                <td colspan="2"><strong>Month Total</strong></td>
+                                <td><strong>₹{{ total_amount|floatformat:2 }}</strong></td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📈 Spending Trend (Last 6 Months)</h5>
+                    </div>
+                    <div class="card-body" style="height: 350px;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">📊 Category Distribution</h5>
+                    </div>
+                    <div class="card-body" style="height: 350px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Get data from Django
+var monthlyLabels = {{ monthly_labels|safe }};
+var monthlyData = {{ monthly_data|safe }};
+var categories = {{ categories|safe }};
+var categoryTotals = {{ category_totals|safe }};
+var categoryColors = {{ category_colors|safe }};
+
+// Ensure we have data
+if (!monthlyLabels || monthlyLabels.length === 0) {
+    monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    monthlyData = [0, 0, 0, 0, 0, 0];
+}
+
+if (!categories || categories.length === 0) {
+    categories = ['No Data'];
+    categoryTotals = [1];
+    categoryColors = ['#6c757d'];
+}
+
+// Trend Chart (Line)
+var ctx1 = document.getElementById('trendChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'line',
+    data: {
+        labels: monthlyLabels,
+        datasets: [{
+            label: 'Monthly Spending (₹)',
+            data: monthlyData,
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '₹' + value;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Category Chart
+var ctx2 = document.getElementById('categoryChart').getContext('2d');
+new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+        labels: categories,
+        datasets: [{
+            data: categoryTotals,
+            backgroundColor: categoryColors,
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 10,
+                    font: {
+                        size: 12
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
