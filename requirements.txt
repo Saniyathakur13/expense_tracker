@@ -4,3 +4,5 @@ mysqlclient==2.2.8
 gunicorn==21.2.0
 python-dotenv
 dj-database-url
+django-crispy-forms==2.3
+crispy-bootstrap5==2024.10
