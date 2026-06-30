@@ -113,3 +113,9 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+ALLOWED_HOSTS = [
+    'expense-tracker-6b2h.onrender.com', 
+    '127.0.0.1', 
+    'localhost'
+]
