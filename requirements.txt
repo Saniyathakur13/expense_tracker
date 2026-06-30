@@ -6,3 +6,10 @@ python-dotenv
 dj-database-url
 django-crispy-forms==2.3
 crispy-bootstrap5==2024.10
+asgiref==3.11.1
+charset-normalizer==3.4.7
+pillow==12.2.0
+PyMySQL==1.2.0
+reportlab==5.0.0
+sqlparse==0.5.5
+tzdata==2026.2
