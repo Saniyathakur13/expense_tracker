@@ -109,13 +109,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Security Settings (for production)
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 ALLOWED_HOSTS = [
-    'expense-tracker-6b2h.onrender.com', 
-    '127.0.0.1', 
-    'localhost'
+    '.onrender.com',
+    '127.0.0.1',
+    'localhost',
 ]
