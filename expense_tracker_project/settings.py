@@ -4,7 +4,6 @@ Django settings for expense_tracker project.
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,11 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ALLOWED_HOSTS - Dynamic for Render
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-# Add Render domain if not in env
-if not os.getenv('ALLOWED_HOSTS'):
-    ALLOWED_HOSTS.extend(['.onrender.com', 'localhost', '127.0.0.1'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -77,22 +72,50 @@ TEMPLATES = [
 WSGI_APPLICATION = 'expense_tracker_project.wsgi.application'
 
 # ============================================
-# DATABASE - Smart Switching
+# DATABASE - Direct PostgreSQL (No dj_database_url)
 # ============================================
 
-# Check if DATABASE_URL is set (Render/Aiven/Production)
+# Check if we're on Render (DATABASE_URL environment variable)
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 if DATABASE_URL:
-    # Production: Use PostgreSQL (Render/Aiven)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=True
-        )
-    }
-    print(f"✅ Using PostgreSQL database from DATABASE_URL")
+    # Production: Parse PostgreSQL URL manually
+    import re
+    # Parse the DATABASE_URL (postgres://user:pass@host:port/dbname)
+    match = re.match(r'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
+    if match:
+        user, password, host, port, dbname = match.groups()
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': dbname,
+                'USER': user,
+                'PASSWORD': password,
+                'HOST': host,
+                'PORT': port,
+                'CONN_MAX_AGE': 600,
+                'OPTIONS': {
+                    'sslmode': 'require',
+                }
+            }
+        }
+        print(f"✅ Using PostgreSQL database: {dbname}")
+    else:
+        # Fallback to environment variables if parsing fails
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME', 'defaultdb'),
+                'USER': os.getenv('DB_USER', ''),
+                'PASSWORD': os.getenv('DB_PASSWORD', ''),
+                'HOST': os.getenv('DB_HOST', ''),
+                'PORT': os.getenv('DB_PORT', '23659'),
+                'CONN_MAX_AGE': 600,
+                'OPTIONS': {
+                    'sslmode': 'require',
+                }
+            }
+        }
 else:
     # Development: Use MySQL (Local)
     DATABASES = {
@@ -122,17 +145,13 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# ============================================
-# STATIC FILES - Production Ready
-# ============================================
-
+# Static files
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'expenses' / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# WhiteNoise Storage for production
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -142,10 +161,7 @@ STORAGES = {
     },
 }
 
-# ============================================
-# SECURITY - Production Settings
-# ============================================
-
+# Security Settings
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -153,9 +169,8 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# Default primary key field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
