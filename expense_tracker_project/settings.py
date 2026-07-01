@@ -72,7 +72,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'expense_tracker_project.wsgi.application'
 
 # ============================================
-# DATABASE - Direct PostgreSQL (No dj_database_url)
+# DATABASE - Direct PostgreSQL (Fixed Regex Parsing)
 # ============================================
 
 # Check if we're on Render (DATABASE_URL environment variable)
@@ -85,6 +85,11 @@ if DATABASE_URL:
     match = re.match(r'postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)', DATABASE_URL)
     if match:
         user, password, host, port, dbname = match.groups()
+        
+        # FIX: Strip any query params like ?sslmode=require out of the clean database name variable
+        if '?' in dbname:
+            dbname = dbname.split('?')[0]
+            
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
@@ -102,10 +107,14 @@ if DATABASE_URL:
         print(f"✅ Using PostgreSQL database: {dbname}")
     else:
         # Fallback to environment variables if parsing fails
+        fallback_db = os.getenv('DB_NAME', 'defaultdb')
+        if '?' in fallback_db:
+            fallback_db = fallback_db.split('?')[0]
+            
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'defaultdb'),
+                'NAME': fallback_db,
                 'USER': os.getenv('DB_USER', ''),
                 'PASSWORD': os.getenv('DB_PASSWORD', ''),
                 'HOST': os.getenv('DB_HOST', ''),
